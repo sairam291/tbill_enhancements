@@ -5,11 +5,11 @@ INSERT INTO tb_mst_process_config (created_by,created_date,is_deleted,key_desc,k
 	 (0,now(),false,'auction table name','table_name','tb_tbill_auction_data','O',NULL,NULL,2101),
 	 (0,now(),false,'sheet name','sheet_name','Auction WAY','O',NULL,NULL,2101),
 	 (0,now(),false,'file convetor','file_convertor','defaultXlsToCsvConvertor','O',NULL,NULL,2101),
-	 (0,now(),false,'ccli root location','root_folder_location','D:\3cortex\monitoring_folder\','O',NULL,NULL,2101),
+	 (0,now(),false,'ccli root location','root_folder_location','/apps/fbil/wasdm/ccilinbound/','O',NULL,NULL,2101),
 	 (0,now(),false,'File Name','benchmark_file_name','DTB_WORKING_FILE','O',NULL,NULL,2101),
-	 (0,now(),false,'file location','location','D:\3cortex\monitoring_folder\FBIL_DEV\inbound\TBill\','O',NULL,NULL,2101),
-	 (0,now(),false,'BaseData file location','base_data_location','D:\3cortex\monitoring_folder\FBIL_DEV\inbound\TBill\Basedata\','O',NULL,NULL,2101),
-	 (0,now(),false,'outbound location','outbound_location','D:\3cortex\monitoring_folder\fbil\outbound\TBill\','O',NULL,NULL,2101);
+	 (0,now(),false,'file location','location','/FBIL_DEV/inbound/TBill/','O',NULL,NULL,2101),
+	 (0,now(),false,'BaseData file location','base_data_location','/FBIL_DEV/inbound/TBill/Basedata/','O',NULL,NULL,2101),
+	 (0,now(),false,'outbound location','outbound_location','/fbil/outbound/TBill/','O',NULL,NULL,2101);
 
 INSERT INTO tb_mst_map_headers_columns (created_by,created_date,header_name,is_deleted,mapping_column_name,oc_status,updated_by,updated_date,process_id) VALUES
 	 (0,now(),'Date',false,'auction_date','O',NULL,NULL,2101),
@@ -33,9 +33,18 @@ oc_status = 'C',
 updated_date = now()
 where identifier = 'T-BILL_FETCHWORKING' ;
 
+update tb_mst_query_store 
+set identifier = concat(identifier, '_OLD'),
+oc_status = 'C',
+updated_date = now()
+where identifier = 'T-BILL_FETCHAUGMENTEDDATA' ;
+
 INSERT INTO tb_mst_query_store (created_by,created_date,description,identifier,is_deleted,oc_status,query) VALUES
-	 (99,now(),'updates working column in the trade dump for a given date','T-BILL_UPDWORKING',false,'O','UPDATE tb_tbill_trade_data SET working_data = TRUE, updated_by = :updateBy, updated_date = :updatedDate WHERE trade_date = :processDate  and deal_quantity >= :tradeSize and (date_trunc(''day'',maturity_date) - date_trunc(''day'',settlement_date) ) >= :resMatStartDays and (date_trunc(''day'',maturity_date) - date_trunc(''day'',settlement_date) ) <= :resMatEndDays and processed = FALSE AND is_deleted = false'),
-	 (99,now(),'Returns the working trade dump for a given date','T-BILL_FETCHWORKING',false,'O','select data_id AS "dataId", created_by AS "createdBy", created_date AS "createdDate", arcdint as "arcdint", buy_broker_id as "buyBrokerId", buyer_constituent_name as "buyerConstituentName", buyer_mem_id as "buyerMemId", buyer_member as "buyerMember", coupon as "coupon", deal_id as "dealId", deal_price as "dealPrice", deal_quantity as "dealQuantity", grs_consideration as "grsConsideration", is_deleted as "isDeleted", isin_desc as "isinDesc", isin_no as "isinNo", maturity_date as "maturityDate", outlier as "outlier", processed as "processed", (date_trunc(''day'',maturity_date) - date_trunc(''day'',settlement_date) ) as "residualTenor", sell_broker_id as "sellBrokerId", seller_constituent_name as "sellerConstituentName", seller_mem_id as "sellerMemId", seller_member as "sellerMember", settlement_date as "settlementDate", trade_date as "tradeDate", trade_source as "tradeSource", updated_by as "updatedBy", updated_date as "updatedDate", working_data as "workingData", yield as "yield" from tb_tbill_trade_data WHERE trade_date = :processDate  and deal_quantity >= :tradeSize and (date_trunc(''day'',maturity_date) - date_trunc(''day'',settlement_date) ) >= :resMatStartDays and (date_trunc(''day'',maturity_date) - date_trunc(''day'',settlement_date) ) <= :resMatEndDays and processed = FALSE AND is_deleted = false');
+	 (99,now(),'updates working column in the trade dump for a given date','T-BILL_UPDWORKING',false,'O','UPDATE tb_tbill_trade_data SET working_data = TRUE, updated_by = :updateBy, updated_date = :updatedDate WHERE trade_date = :processDate  and deal_quantity >= :tradeSize and new_tenor = :newTenor and processed = FALSE AND is_deleted = false'),
+	 (99,now(),'Returns the working trade dump for a given date','T-BILL_FETCHWORKING',false,'O','SELECT data_id AS "dataId", created_by AS "createdBy", created_date AS "createdDate", arcdint AS "arcdint", buy_broker_id AS "buyBrokerId", buyer_constituent_name AS "buyerConstituentName", buyer_mem_id AS "buyerMemId", buyer_member AS "buyerMember", coupon AS "coupon", deal_id AS "dealId", deal_price AS "dealPrice", deal_quantity AS "dealQuantity", grs_consideration AS "grsConsideration", is_deleted AS "isDeleted", isin_desc AS "isinDesc", isin_no AS "isinNo", maturity_date AS "maturityDate", outlier AS "outlier", processed AS "processed", residual_tenor AS "residualTenor", sell_broker_id AS "sellBrokerId", seller_constituent_name AS "sellerConstituentName", seller_mem_id AS "sellerMemId", seller_member AS "sellerMember", settlement_date AS "settlementDate", trade_date AS "tradeDate", trade_source AS "tradeSource", updated_by AS "updatedBy", updated_date AS "updatedDate", working_data AS "workingData", yield AS "yield", new_tenor AS "newTenor" FROM tb_tbill_trade_data WHERE trade_date = :processDate AND deal_quantity >= :tradeSize AND new_tenor = :newTenor AND processed = false AND is_deleted = false'),
+	 (99,now(),'fetch MOT data to augment','T-BILL_FETCHAUGMENTEDDATA',false,'O','SELECT data_id AS "dataId", bucket AS "bucket", buy_count AS "buyCount", buy_order_amount AS "buyOrderAmount", buy_price AS "buyPrice", final_amount AS "finalAmount", final_count AS "finalCount", instrument_identity AS "instrumentIdentity", isin_no AS "isinNo", maturity_date AS "maturityDate", mid_quote AS "midQuote", sell_count AS "sellCount", sell_order_amount AS "sellOrderAmount", sell_price AS "sellPrice", settlement_date AS "settlementDate", spread_bps AS "spreadBps", created_by AS "createdBy", created_date AS "createdDate", is_deleted AS "isDeleted", outlier AS "outlier", processed AS "processed", updated_by AS "updatedBy", updated_date AS "updatedDate", working_data AS "workingData", residual_maturity AS "residualMaturity", new_tenor AS "newTenor" FROM tb_tbill_bothsides_order_data WHERE final_amount >= :orderSize AND settlement_date = :settlementDate AND new_tenor = :newTenor AND spread_bps <= :minBasisPoints AND processed = false AND is_deleted = false'),
+	 (99,now(),'update processed column to true in auction table','T-BILL_AUCTION_UPDPROCESSEDDATA',false,'O','UPDATE tb_tbill_auction_data SET processed = true, updated_by = :updateBy, updated_date = :updatedDate WHERE auction_date = :processDate AND processed = false AND is_deleted = false'),
+	 (99,now(),'update outlier second stage column to true in trade data table','T-BILL_OUTLIER_SS_UPDOUTLIERSBYDATAID',false,'O','UPDATE tb_tbill_trade_data SET outlier_ss = true, updated_by = :updateBy, updated_date = :updatedDate WHERE data_id = :dataId AND processed = false AND is_deleted = false');
 
 
 
